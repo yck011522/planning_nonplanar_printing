@@ -5,11 +5,14 @@ Codebase for planning non-planar robotic 3D printing trajectories
 Run this the following in terminal from the root folder of this repo. All libraries are installed from source (in the [editable mode](https://pip.pypa.io/en/stable/reference/pip_install/#install-editable)).
 
 ```bash
-# Install the submodule libraries from source
-pip install -e .\external\compas
-pip install -e .\external\compas_fab
-pip install -e .\external\compas_fab_pychoreo
+# Install the submodule libraries from source 
+# (It is now automatically installed by setup.py)
+# pip install -e .\external\compas
+# pip install -e .\external\compas_fab
+# pip install -e .\external\compas_fab_pychoreo
+```
 
+```bash
 # install `integral_timber_joints` from source 
 pip install -e .
 
