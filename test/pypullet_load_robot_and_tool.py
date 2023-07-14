@@ -70,15 +70,17 @@ def load_toolmodel_from_json(toolmodel_path):
 def add_tool_to_robot(client, tool, urdf_path):
     from compas_fab.robots import AttachedCollisionMesh, CollisionMesh
 
-
     client.add_tool_from_urdf(tool.name, urdf_path)
     client.add_attached_collision_mesh(
         AttachedCollisionMesh(CollisionMesh(None, 'otto1'),
                             'tool0', touch_links=['tool0', 'flange', 'link_6']),
         options={'robot': robot,
-                'attached_child_link_name': tool.get_base_link_name(),
+                # 'attached_child_link_name': tool.get_base_link_name(),
+                'attached_child_link_name': 'attached_tool_link',
                 'parent_link_from_child_link_transformation' : Transformation.from_frame(Frame.worldXY()),
                 })
+    
+
     
 # Load Pybullet Client
 urdf_filename = os.path.join('robot', 'abb_crb15000_support', 'urdf', 'crb15000_5_95.urdf')
@@ -94,7 +96,13 @@ tool_urdf_package_path = os.path.join(urdf_package_path, 'otto1.urdf')
 tool_model = load_toolmodel_from_json(tool_json_path)
 tool = Tool.from_tool_model(tool_model)
 robot.attach_tool(tool,touch_links=['tool0', 'flange', 'link_6'])
-# add_tool_to_robot(planner, tool, tool_urdf_package_path)
+# planner.add_tool_from_urdf(tool.name, tool_urdf_package_path)
+
+planner.add_tool(tool)
+
+
+
+add_tool_to_robot(planner, tool, tool_urdf_package_path)
 
 
 pass
