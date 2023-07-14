@@ -1,11 +1,13 @@
 import os
 import sys
+import math
 
 from compas.geometry import Frame, Transformation
 from compas.robots import RobotModel, Configuration, ToolModel
 from compas_fab.robots import RobotSemantics, Tool
 from compas.data import DataDecoder
-from pybullet_planning import draw_pose, set_camera_pose, load_pybullet, unit_pose, LockRenderer, set_camera
+import pybullet_planning as pp
+from pybullet_planning import draw_pose, set_camera_pose, load_pybullet, unit_pose, LockRenderer, set_camera, wait_if_gui
 from compas_fab_pychoreo.client import PyChoreoClient
 
 # For testing files locations
@@ -42,6 +44,9 @@ def load_pybullet_with_robot(urdf_filename, srdf_filename, viewer=True, verbose=
 
     # * Get robot's unique body index in pybullet
     robot_uid = planner.get_robot_pybullet_uid(robot)
+    # pp.set_color(robot_uid, (0.5, 0.5, 0.5, 0.1))
+    # tool0_pose = pp.get_link_pose(robot_uid, pp.link_from_name(robot_uid, 'tool0'))
+    # draw_pose(tool0_pose, length=0.3)
 
     # * Draw base tcp_frame and locate camera in pybullet
     draw_pose(unit_pose(), length=1.)
@@ -69,18 +74,23 @@ def load_toolmodel_from_json(toolmodel_path):
 
 def add_tool_to_robot(client, tool, urdf_path):
     from compas_fab.robots import AttachedCollisionMesh, CollisionMesh
+    # grasp_frame = Frame.worldXY()
+    grasp_frame = Frame.from_euler_angles([math.pi/2,0,0])
 
     client.add_tool_from_urdf(tool.name, urdf_path)
     client.add_attached_collision_mesh(
-        AttachedCollisionMesh(CollisionMesh(None, 'otto1'),
+        AttachedCollisionMesh(CollisionMesh(None, tool.name),
                             'tool0', touch_links=['tool0', 'flange', 'link_6']),
         options={'robot': robot,
                 # 'attached_child_link_name': tool.get_base_link_name(),
                 'attached_child_link_name': 'attached_tool_link',
-                'parent_link_from_child_link_transformation' : Transformation.from_frame(Frame.worldXY()),
+                'parent_link_from_child_link_transformation' : Transformation.from_frame(grasp_frame),
                 })
-    
 
+    # This is to trigger simulator to update the tool position according to the grasp
+    # We will remove later as we improved the API
+    for attachment in client.pychoreo_attachments[tool.name]:
+        attachment.assign()
     
 # Load Pybullet Client
 urdf_filename = os.path.join('robot', 'abb_crb15000_support', 'urdf', 'crb15000_5_95.urdf')
@@ -97,12 +107,10 @@ tool_model = load_toolmodel_from_json(tool_json_path)
 tool = Tool.from_tool_model(tool_model)
 robot.attach_tool(tool,touch_links=['tool0', 'flange', 'link_6'])
 # planner.add_tool_from_urdf(tool.name, tool_urdf_package_path)
-
-planner.add_tool(tool)
-
-
-
 add_tool_to_robot(planner, tool, tool_urdf_package_path)
 
+# ? ideal API
+# planner.add_tool(tool)
 
+wait_if_gui()
 pass
