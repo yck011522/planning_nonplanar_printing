@@ -1,116 +1,35 @@
 import os
-import sys
-import math
 
-from compas.geometry import Frame, Transformation
-from compas.robots import RobotModel, Configuration, ToolModel
-from compas_fab.robots import RobotSemantics, Tool
-from compas.data import DataDecoder
-import pybullet_planning as pp
-from pybullet_planning import draw_pose, set_camera_pose, load_pybullet, unit_pose, LockRenderer, set_camera, wait_if_gui
-from compas_fab_pychoreo.client import PyChoreoClient
+from compas.data import json_load
+from compas.robots import  RobotModel, ToolModel
+from compas_fab.robots import  Tool, CollisionMesh
 
-# For testing files locations
-sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+from pybullet_planning import LockRenderer, set_camera, wait_if_gui
+from npp.load import load_pybullet_with_robot, add_tool_to_client
 
-
-def load_pybullet_with_robot(urdf_filename, srdf_filename, viewer=True, verbose=False):
-    """Load pybullet with robot and return the planner, robot and robot_uid
-
-    Attributes
-    ----------
-    urdf_filename : str
-        file path to the urdf file
-    srdf_filename : str
-        file path to the srdf file
-    viewer : bool, optional
-        whether to show the pybullet viewer, by default True. 
-        (Enable this will slow down the loading and planning process)
-    verbose : bool, optional
-        whether to print out the pybullet planner's log, by default False
-    """
-    # * load pybullet planner
-    planner = PyChoreoClient(viewer=viewer, verbose=verbose)
-    planner.connect()
-
-    # * Load robot model and semantics
-    model = RobotModel.from_urdf_file(urdf_filename)
-    semantics = RobotSemantics.from_srdf_file(srdf_filename, model)
-
-    # * Add robot to pybullet
-    with LockRenderer():
-        robot = planner.load_robot(urdf_filename)
-    robot.semantics = semantics
-
-    # * Get robot's unique body index in pybullet
-    robot_uid = planner.get_robot_pybullet_uid(robot)
-    # pp.set_color(robot_uid, (0.5, 0.5, 0.5, 0.1))
-    # tool0_pose = pp.get_link_pose(robot_uid, pp.link_from_name(robot_uid, 'tool0'))
-    # draw_pose(tool0_pose, length=0.3)
-
-    # * Draw base tcp_frame and locate camera in pybullet
-    draw_pose(unit_pose(), length=1.)
-
-    return planner, robot, robot_uid
-
-def load_tool(toolmodel_path):
-    import json
-    from integral_timber_joints.tools import ToolChanger
-
-    with open(toolmodel_path, 'r') as f:
-        tool = json.load(f, cls=DataDecoder) # type:ToolChanger
-
-    tool_urdf_path = os.path.dirname(toolmodel_path)
-    tool.save_as_urdf(tool_urdf_path, triangulize=True)
-    return tool
-
-def load_toolmodel_from_json(toolmodel_path):
-    import json
-    from compas.robots import ToolModel
-
-    with open(toolmodel_path, 'r') as f:
-        tool = json.load(f, cls=DataDecoder) # type:ToolModel
-    return tool
-
-def add_tool_to_robot(client, tool, urdf_path):
-    from compas_fab.robots import AttachedCollisionMesh, CollisionMesh
-    # grasp_frame = Frame.worldXY()
-    grasp_frame = Frame.from_euler_angles([math.pi/2,0,0])
-
-    client.add_tool_from_urdf(tool.name, urdf_path)
-    client.add_attached_collision_mesh(
-        AttachedCollisionMesh(CollisionMesh(None, tool.name),
-                            'tool0', touch_links=['tool0', 'flange', 'link_6']),
-        options={'robot': robot,
-                # 'attached_child_link_name': tool.get_base_link_name(),
-                'attached_child_link_name': 'attached_tool_link',
-                'parent_link_from_child_link_transformation' : Transformation.from_frame(grasp_frame),
-                })
-
-    # This is to trigger simulator to update the tool position according to the grasp
-    # We will remove later as we improved the API
-    for attachment in client.pychoreo_attachments[tool.name]:
-        attachment.assign()
-    
 # Load Pybullet Client
 urdf_filename = os.path.join('robot', 'abb_crb15000_support', 'urdf', 'crb15000_5_95.urdf')
 srdf_filename = os.path.join('robot', 'abb_crb15000_support', 'srdf', 'abb_crb15000_5_95.srdf')
+client, robot, robot_uid = load_pybullet_with_robot(urdf_filename, srdf_filename, viewer=True)
 
-planner, robot, robot_uid = load_pybullet_with_robot(urdf_filename, srdf_filename, viewer=True)
-
-# Load Tool Model from json
-urdf_package_path = os.path.join('test_result', 'tool', 'create_tool')
-tool_json_path = os.path.join(urdf_package_path, 'otto1.json')
-tool_urdf_package_path = os.path.join(urdf_package_path, 'otto1.urdf')
-
-tool_model = load_toolmodel_from_json(tool_json_path)
+# Load Tool Model from json, create Tool, add it to Robot
+tool_json_path = os.path.join('tool', 'otto1', 'otto1.json')
+tool_model = json_load(tool_json_path) #type: ToolModel
 tool = Tool.from_tool_model(tool_model)
-robot.attach_tool(tool,touch_links=['tool0', 'flange', 'link_6'])
-# planner.add_tool_from_urdf(tool.name, tool_urdf_package_path)
-add_tool_to_robot(planner, tool, tool_urdf_package_path)
+tool.link_name = 'tool0'
+touch_links = ['tool0', 'flange', 'link_6']
+robot.attach_tool(tool,touch_links=touch_links)
 
-# ? ideal API
-# planner.add_tool(tool)
+# Add Tool to Pybullet Client
+urdf_package_path = os.path.join('tool', 'otto1')
+add_tool_to_client(client, robot, tool, urdf_package_path, touch_links=touch_links)
+
+# Load some Collision Meshes
+collision_meshes_path = os.path.join('test', 'design', 'CollisionMesh1_Table.json')
+collision_meshes = json_load(collision_meshes_path)
+for i, mesh in enumerate(collision_meshes):
+    cm = CollisionMesh(mesh, 'static_cm_%i' % i)
+    client.add_collision_mesh(cm, {})
 
 wait_if_gui()
 pass
