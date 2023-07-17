@@ -188,3 +188,36 @@ class PlanningProblem(Data):
         self.start_configuration = data.get('start_configuration', None)
         self.static_collision_meshes = data.get('static_collision_meshes', [])
         self.robot = data.get('robot', None)
+
+    def get_robotic_movements(self):
+        # type: () -> List[RoboticMovement]
+        """ Returns all the Robotic Movements in the planning problem
+        """
+        return [t for t in self.tasks if isinstance(t, RoboticMovement)]
+
+    def renumber_task_ids(self):
+        # type: () -> None
+        """ Renumber the movement ids in the planning problem
+        """
+        for i, t in enumerate(self.tasks):
+            t.task_id = "t%i" % i
+
+    def get_linear_movement_groups(self):
+        # type: () -> List[List[RoboticLinearMovement]]
+        """ Returns a list of list of RoboticLinearMovement
+        """
+        groups = []
+        for t in self.get_robotic_movements():
+            if isinstance(t, RoboticLinearMovement):
+                if len(groups) == 0:
+                    groups.append([])
+                groups[-1].append(t)
+            else:
+                if len(groups) > 0:
+                    if len(groups[-1]) > 0:
+                        groups.append([])
+        # Remove empty groups
+        if len(groups) > 0:
+            if groups[-1] == []:
+                groups.pop()
+        return groups

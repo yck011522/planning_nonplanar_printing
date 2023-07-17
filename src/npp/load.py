@@ -126,12 +126,7 @@ def add_tool_to_client(client, robot, tool, urdf_package_path, touch_links):
         attachment.assign()
 
 
-def load_planning_problem (design_path, scale = None): # type: (str, float) -> PlanningProblem
-    import json
-    # Load Design Frames
-    with open(design_path, 'r') as f:
-        planes = json.load(f, cls=DataDecoder)
-
-    if scale is not None:
-        for plane in planes:
-            plane.point *= scale
+def load_planning_problem (file_path): # type: (str) -> PlanningProblem
+    pp = json_load(file_path) # type: PlanningProblem
+    assert type(pp) == PlanningProblem
+    return pp

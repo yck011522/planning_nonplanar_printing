@@ -19,6 +19,7 @@ def random_ik (client, robot, frame, starting_config= None, tries = 10, collisio
                 return configuration
     return None
 
+
 def plan_one_stroke(robot, client, planes, draw=False):
     configurations = []
 
@@ -54,3 +55,4 @@ def create_rotated_frames_by_steps(tcp_frame, num_steps = 36):
         rotated_frame = rotate_frame(tcp_frame, rotation_rad)
         tcp_frames.append(rotated_frame)
     return tcp_frames
+
