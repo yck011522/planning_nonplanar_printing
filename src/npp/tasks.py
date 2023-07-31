@@ -3,7 +3,7 @@ import os
 
 from compas.robots.configuration import Configuration
 from compas.geometry import Frame, Transformation
-from compas_fab.robots import JointTrajectory, CollisionMesh, Tool
+from compas_fab.robots import JointTrajectory, CollisionMesh, Tool, Trajectory, JointTrajectoryPoint
 
 try:
     from typing import Optional, List, Tuple
@@ -15,12 +15,16 @@ class Task(Data):
     def __init__(self, tag=None):
         super(Task, self).__init__()
         self.task_id = ""  # type: str
+        self.execution_result = None
+        self.execution_end_time = None
         self.tag = tag or "Generic Task"  # type: str
 
     @property
     def data(self):
         data = {
             'task_id': self.task_id,
+            'execution_result': self.execution_result,
+            'execution_end_time': self.execution_end_time,
             'tag': self.tag,
         }
         return data
@@ -28,6 +32,8 @@ class Task(Data):
     @data.setter
     def data(self, data):
         self.task_id = data.get('task_id', "")
+        self.execution_result = data.get('execution_result', None)
+        self.execution_end_time = data.get('execution_end_time', None)
         self.tag = data.get('tag', "")
 
     def get_filepath(self, subdir='tasks'):
