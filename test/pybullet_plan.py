@@ -18,51 +18,60 @@ current_file_location = os.path.abspath(__file__)
 current_folder_path = os.path.dirname(current_file_location)
 root_folder_path = os.path.dirname(current_folder_path)
 
+# Enable to viewer to see how Pybullet is planning
+# Disable viewer to speed up the planning process
+viewer_enabled = True
 
 try:
     from typing import Optional, List, Tuple
 except:
     pass
 
-    # Load Pybullet Client
+# Load Pybullet Client
+# Change the location of the URDF and SRDF files if needed
 urdf_filename = os.path.join(
     root_folder_path, 'robot', 'abb_crb15000_support', 'urdf', 'crb15000_5_95.urdf')
 srdf_filename = os.path.join(
     root_folder_path, 'robot', 'abb_crb15000_support', 'srdf', 'abb_crb15000_5_95.srdf')
 client, robot, robot_uid = load_pybullet_with_robot(
-    urdf_filename, srdf_filename, viewer=True)
-# client, robot, robot_uid = load_pybullet_with_robot(urdf_filename, srdf_filename, viewer=False)
+    urdf_filename, srdf_filename, viewer=viewer_enabled)
 
 # Load Tool Model from json, create Tool, add it to Robot
+# Change the location of the Tool json file if needed 
 tool_json_path = os.path.join(
     root_folder_path, 'tool', 'BioPrint901', 'BioPrint901.json')
 tool_model = json_load(tool_json_path)  # type: ToolModel
 tool = Tool.from_tool_model(tool_model)
+
+# Define touch links for attaching the tool to the robot
+# The touch links are the links on the robot that can collide with the tool
 tool.link_name = 'tool0'
 touch_links = ['tool0', 'flange', 'link_6']
 robot.attach_tool(tool, touch_links=touch_links)
 
 # Add Tool to Pybullet Client
+# Change the tool name if needed
 urdf_package_path = os.path.join('tool', 'BioPrint901')
 add_tool_to_client(client, robot, tool, urdf_package_path,
                    touch_links=touch_links)
 
 # Load Planning Problem
+# Change the location of the Planning Problem json file if needed
 planning_problem_path = os.path.join(
-    'test', 'design', '230726_PathPlanning_BioPrint901_V1.json')
+    'test', 'design', 'planning_problem_1_newtool.json')
 pp = load_planning_problem(planning_problem_path)
 pp.renumber_task_ids()
 
-# Output Location
+# Output Location for Planning Result
+# Change the location of the output json file if needed
 result_filename = os.path.join(
-    root_folder_path, 'test', 'design', 'planning_result_230726_PathPlanning_BioPrint901.json')
+    root_folder_path, 'test', 'design', 'planning_result_1_newtool.json')
 
 # Set Collision Meshes
 for i, cm in enumerate(pp.static_collision_meshes):
     client.add_collision_mesh(cm)
 
 # Check IK (no plane rotation)
-
 
 def check_pp_ik(robot, client, tool, pp, plane_rotation_angle=None, diagnose=False):
     # type: (Robot, PyChoreoClient, Tool, PlanningProblem, Optional[float], bool) -> None
@@ -208,104 +217,20 @@ for i in range(len(movements)):
     movement = movements[i]
     movement.trajectory = [complete_plan[i]]
 
-
+# Save the result to file
 json_dump(pp, result_filename)
 
-if complete_plan is not None:
-    step = 0
-    while (True):
-        config = complete_plan[step]
-        client.set_robot_configuration(robot, config)
-        value = input("Click to continue")
-        if value == "q":
-            break
-        elif value == "b":
-            step = max(0, (step - 1))
-        else:
-            step = min(len(complete_plan) - 1, (step + 1))
-
-pass
-
-
-# Usage:
-
-# ik_result = client.inverse_kinematics(
-#     robot, first_motion.target_frame,
-#     group=None,
-#     options={'avoid_collisions': False})
-# print(ik_result)
-# pass
-
-# Load Planes and convert them to tcp_frames
-# planes = load_planes(design_path, scale=1e-3)
-# tcp_frames = [Frame(p.point, Vector(0.0, 1.0, 0.0), Vector(1.0, 0.0, 0.0)) for p in planes]
-
-# Move the design in space
-# T = Translation.from_vector([0.2,0,-0.5])
-# T = Translation.from_vector([0.2,0,0.0])
-# tcp_frames = [f.transformed(T) for f in tcp_frames]
-
-# Load Tool Model
-# tool = load_toolmodel_from_json(toolmodel_path)
-# add_tool_to_client(client, robot, tool, toolmodel_path)
-
-# Compute robot target (aka. flange tcp_frame)
-
-# Create different rotated tcp_frames around the plane
-# draw_pose(first_motion.target_frame)
-# rotated_tcp_frames = create_rotated_frames_by_steps(first_motion.target_frame, num_steps= 20)
-# flange_frames = tool.from_tcf_to_t0cf(rotated_tcp_frames)
-# flange_frames = rotated_tcp_frames
-# configurations= []
-
-# Demonstrating differnt rotational planning oppurtunity, no collision check
-# for frame in flange_frames:
-#     configuration = client.inverse_kinematics(robot, frame, group=None, options={'avoid_collisions': False})
-#     configurations.append(configuration)
-#     print ("Frame:" , frame)
-#     print ("Result:" , configuration)
-#     if configuration is not None:
-#         cc_result = client.check_collisions(robot, configuration, options={'diagnosis':True})
-#         print ("Collision:" , cc_result)
-
-# # Demonstrating random IK, with collision check
-# for i in range (20):
-#     configuration = random_ik(client, robot, flange_frames[0], tries = 100, collision = True, visualize=False)
-#     configurations.append(configuration)
-#     print ("Attempt:" , i)
-#     print ("Result:" , configuration)
-
-# # Demonstrating random IK, same rotated plane, with CC.
-# for frame in flange_frames:
-#     configuration = random_ik(client, robot, frame, tries = 20, collision = True, visualize=False)
-#     configurations.append(configuration)
-#     print ("Frame:" , frame)
-#     print ("Result:" , configuration)
-
-# Planning the whole design, no rotated plane, with CC.
-# for angle in range(0, 360, 18):
-#     configurations = []
-#     tcp_frames = [rotate_frame(f, angle) for f in tcp_frames]
-#     flange_frames = tool.from_tcf_to_t0cf(tcp_frames)
-#     current_config = robot.zero_configuration()
-#     for frame in flange_frames:
-#         current_config = random_ik(client, robot, frame,
-#                                 starting_config=current_config,
-#                                 tries = 20,
-#                                 collision = True,
-#                                 visualize=False)
-#         configurations.append(current_config)
-#         # print ("Frame:" , frame)
-#         # print ("Result:" , current_config)
-
-
-#     num_items = len(configurations)
-#     num_not_none = sum(c is not None for c in configurations)
-#     print(f"Angle {angle} : {num_not_none}/{num_items} succeeded")
-
-# configurations = plan_one_stroke(robot, client, tcp_frames, draw=False)
-# for config in configurations:
-#     print (config)
-#     if config is not None:
-#         client.set_robot_configuration(robot, config)
-#         _  = input("Waiting")
+# Visualize the result if viewer is enabled
+if viewer_enabled:
+    if complete_plan is not None:
+        step = 0
+        while (True):
+            config = complete_plan[step]
+            client.set_robot_configuration(robot, config)
+            value = input("Click to continue")
+            if value == "q":
+                break
+            elif value == "b":
+                step = max(0, (step - 1))
+            else:
+                step = min(len(complete_plan) - 1, (step + 1))

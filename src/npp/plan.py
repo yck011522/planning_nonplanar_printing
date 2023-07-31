@@ -1,7 +1,8 @@
 from pybullet_planning import draw_pose, set_camera_pose, load_pybullet, unit_pose, LockRenderer, set_camera
 from compas.geometry import Plane, Frame, Point, Vector, Transformation, Translation
 
-def random_ik (client, robot, frame, starting_config= None, tries = 10, collision = True, visualize = True):
+
+def random_ik(client, robot, frame, starting_config=None, tries=10, collision=True, visualize=True):
     """ pybullet IK wrapper, provide random IK solution for a given frame.
     If starting_config is provided, the random IK will start from that configuration.
     If tries is more than 1, the random IK will try multiple times with randomized starting configuration."""
@@ -13,38 +14,21 @@ def random_ik (client, robot, frame, starting_config= None, tries = 10, collisio
             client.set_robot_configuration(robot, configuration)
             configuration = client.inverse_kinematics(
                 robot, frame, group=None, options={'avoid_collisions': collision})
-            
+
             # configuration will be None if planning failed.
             if configuration is not None:
                 return configuration
     return None
 
 
-def plan_one_stroke(robot, client, planes, draw=False):
-    configurations = []
-
-    if not draw:
-        lock = LockRenderer()
-
-    for plane in planes:
-        # * pybullet gradient-based IK
-        
-        conf = client.inverse_kinematics(
-            robot, plane, group=None, options={'avoid_collisions': False})
-        configurations.append(conf)
-
-    if not draw:
-        lock.restore()
-
-    return configurations
-
-def rotate_frame(tcp_frame, angle): # type: (Frame, float) -> Frame
+def rotate_frame(tcp_frame, angle):  # type: (Frame, float) -> Frame
     from compas.geometry.transformations.matrices import matrix_from_axis_and_angle
     from compas.geometry import Rotation
     r = Rotation.from_axis_and_angle(tcp_frame.zaxis, angle, tcp_frame.point)
     return tcp_frame.transformed(r)
 
-def create_rotated_frames_by_steps(tcp_frame, num_steps = 36):
+
+def create_rotated_frames_by_steps(tcp_frame, num_steps=36):
     import math
     rotation_angle = 360  # Degrees
     rotation_step = rotation_angle / num_steps
@@ -55,4 +39,3 @@ def create_rotated_frames_by_steps(tcp_frame, num_steps = 36):
         rotated_frame = rotate_frame(tcp_frame, rotation_rad)
         tcp_frames.append(rotated_frame)
     return tcp_frames
-
