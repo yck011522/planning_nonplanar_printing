@@ -10,15 +10,15 @@ from compas_fab.robots import to_degrees
 from npp.tasks import PlanningProblem, Task, RoboticFreeMovement, RoboticLinearMovement, AirAssistOn, AirAssistOff, ExtruderOn, ExtruderOff
 
 PATH = os.path.dirname(os.path.abspath(__file__))
-FILE_NAME = 'test/design/planning_result_230726_PathPlanning_BioPrint901.json'
+FILE_NAME = 'test/design/planning_result_230808_DefTest_V1.json'
 
 
 x_offset = 0.0
 y_offset = 0.0
 z_offset = 0.0
 
-travel_speed = 50
-print_speed = 15
+travel_speed = 100
+print_speed = 50
 
 start_pos = [5.23, 17.86, 0.12, -2.18, 69.80, -176.39]
 

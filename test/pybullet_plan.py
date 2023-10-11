@@ -18,6 +18,9 @@ current_file_location = os.path.abspath(__file__)
 current_folder_path = os.path.dirname(current_file_location)
 root_folder_path = os.path.dirname(current_folder_path)
 
+# Enable to viewer to see how Pybullet is planning
+# Disable viewer to speed up the planning process
+viewer_enabled = True
 
 try:
     from typing import Optional, List, Tuple
@@ -34,7 +37,7 @@ client, robot, robot_uid = load_pybullet_with_robot(
     urdf_filename, srdf_filename, viewer=viewer_enabled)
 
 # Load Tool Model from json, create Tool, add it to Robot
-# Change the location of the Tool json file if needed 
+# Change the location of the Tool json file if needed
 tool_json_path = os.path.join(
     root_folder_path, 'tool', 'BioPrint901', 'BioPrint901.json')
 tool_model = json_load(tool_json_path)  # type: ToolModel
@@ -55,20 +58,21 @@ add_tool_to_client(client, robot, tool, urdf_package_path,
 # Load Planning Problem
 # Change the location of the Planning Problem json file if needed
 planning_problem_path = os.path.join(
-    'test', 'design', 'planning_problem_1_newtool.json')
+    'test', 'design', '230808_PathPlanning_BioPrint901_V1.json')
 pp = load_planning_problem(planning_problem_path)
 pp.renumber_task_ids()
 
 # Output Location for Planning Result
 # Change the location of the output json file if needed
 result_filename = os.path.join(
-    root_folder_path, 'test', 'design', 'planning_result_1_newtool.json')
+    root_folder_path, 'test', 'design', 'planning_result_230808_CurveMergeDist_V3.json')
 
 # Set Collision Meshes
 for i, cm in enumerate(pp.static_collision_meshes):
     client.add_collision_mesh(cm)
 
 # Check IK (no plane rotation)
+
 
 def check_pp_ik(robot, client, tool, pp, plane_rotation_angle=None, diagnose=False):
     # type: (Robot, PyChoreoClient, Tool, PlanningProblem, Optional[float], bool) -> None
@@ -162,7 +166,8 @@ def test_all_angles_for_a_frame(client, robot, tool, robotic_movement, starting_
 
 movements = pp.get_robotic_movements()
 # Skip the last movement
-movements = movements[1:-2]
+# movements = movements[1:-2]
+movements = movements[0:-1]
 # movements = movements[1:10]
 
 first_movement = movements[0]  # type: RoboticMovement
@@ -171,12 +176,12 @@ starting_config = pp.start_configuration
 possible_angles, planned_configurations = test_all_angles_for_a_frame(
     client, robot, tool, first_movement, starting_config, tries=1, plane_rotation_steps=plane_rotation_steps)
 
-starting_config = planned_configurations[0]
+# starting_config = planned_configurations[0]
 
 # Plan each of the movements, with a depth first search approach
 # The first movement is planned with random IK, the rest are planned with gradient IK
 plane_rotation_steps = 50
-jump_tolerance = 0.5
+jump_tolerance = 0.7
 
 
 def dfs(all_movements, currentStep, planned_configurations=None):
