@@ -18,9 +18,6 @@ current_file_location = os.path.abspath(__file__)
 current_folder_path = os.path.dirname(current_file_location)
 root_folder_path = os.path.dirname(current_folder_path)
 
-# Enable to viewer to see how Pybullet is planning
-# Disable viewer to speed up the planning process
-viewer_enabled = True
 
 try:
     from typing import Optional, List, Tuple
