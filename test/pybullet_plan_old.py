@@ -50,14 +50,14 @@ add_tool_to_client(client, robot, tool, urdf_package_path,
 
 # Load Planning Problem
 planning_problem_path = os.path.join(
-    'test', 'design', 'PathPlanning', '231010_PathPlanning_BioPrint901_AutomatedPathes_TightCake_V1.json')
+    'test', 'design', 'PathPlanning', '231010_PathPlanning_BioPrint901_AutomatedPathes_VariableSpeed_V1.json')
 # 'test', 'design', 'PathPlanning', 'temp.json')
 pp = load_planning_problem(planning_problem_path)
 pp.renumber_task_ids()
 
 # Output Location
 result_filename = os.path.join(
-    root_folder_path, 'test', 'design', 'PlanningResult', 'planning_result_231010_AutomatedPathes_TightCake_V1.json')
+    root_folder_path, 'test', 'design', 'PlanningResult', 'planning_result_231010_AutomatedPathes_VariableSpeed_V1.json')
 # root_folder_path, 'test', 'design', 'PlanningResult', 'planning_result_temp.json')
 
 # Set Collision Meshes
