@@ -18,7 +18,7 @@ from npp.load import load_pybullet_with_robot, add_tool_to_client, load_planning
 current_file_location = os.path.abspath(__file__)
 current_folder_path = os.path.dirname(current_file_location)
 root_folder_path = os.path.dirname(current_folder_path)
-sys.setrecursionlimit(50000)
+sys.setrecursionlimit(500000)
 
 try:
     from typing import Optional, List, Tuple
@@ -50,14 +50,14 @@ add_tool_to_client(client, robot, tool, urdf_package_path,
 
 # Load Planning Problem
 planning_problem_path = os.path.join(
-    'test', 'design', 'PathPlanning', '231010_PathPlanning_BioPrint901_AutomatedPathes_VariableSpeed_V1.json')
+    'test', 'design', 'PathPlanning', '231011_PathPlanning_BioPrint901_AutomatedPathes+VariableSpeed_12ptCake_V1.json')
 # 'test', 'design', 'PathPlanning', 'temp.json')
 pp = load_planning_problem(planning_problem_path)
 pp.renumber_task_ids()
 
 # Output Location
 result_filename = os.path.join(
-    root_folder_path, 'test', 'design', 'PlanningResult', 'planning_result_231010_AutomatedPathes_VariableSpeed_V1.json')
+    root_folder_path, 'test', 'design', 'PlanningResult', 'planning_result_231011_AutomatedPathes_VariableSpeed_12ptCake_V1.json')
 # root_folder_path, 'test', 'design', 'PlanningResult', 'planning_result_temp.json')
 
 # Set Collision Meshes
