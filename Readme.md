@@ -4,7 +4,7 @@ Codebase for planning non-planar robotic 3D printing trajectories
 Use conda to create an environment
 ```bash
 conda update conda
-conda create --name npp "python>=3.7,<4"
+conda create --name npp "python>=3.9"
 ```
 
 
