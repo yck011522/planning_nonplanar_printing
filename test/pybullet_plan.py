@@ -1,3 +1,4 @@
+import time
 import random
 import math
 from compas_fab.robots import Robot
@@ -11,7 +12,7 @@ from compas.geometry import Plane, Frame, Point, Vector, Transformation, Transla
 from pybullet_planning import draw_pose, set_camera_pose, load_pybullet, unit_pose, LockRenderer, set_camera
 
 from npp.tasks import PlanningProblem, RoboticMovement, RoboticLinearMovement
-from npp.plan import random_ik, plan_one_stroke, rotate_frame, create_rotated_frames_by_steps
+from npp.plan import random_ik, rotate_frame, create_rotated_frames_by_steps, check_pp_ik, check_pp_with_global_ik_rotation, test_all_angles_for_a_frame
 from npp.load import load_pybullet_with_robot, add_tool_to_client, load_planning_problem
 
 current_file_location = os.path.abspath(__file__)
@@ -20,7 +21,7 @@ root_folder_path = os.path.dirname(current_folder_path)
 
 # Enable to viewer to see how Pybullet is planning
 # Disable viewer to speed up the planning process
-viewer_enabled = True
+viewer_enabled = False
 
 try:
     from typing import Optional, List, Tuple
@@ -37,7 +38,7 @@ client, robot, robot_uid = load_pybullet_with_robot(
     urdf_filename, srdf_filename, viewer=viewer_enabled)
 
 # Load Tool Model from json, create Tool, add it to Robot
-# Change the location of the Tool json file if needed 
+# Change the location of the Tool json file if needed
 tool_json_path = os.path.join(
     root_folder_path, 'tool', 'BioPrint901', 'BioPrint901.json')
 tool_model = json_load(tool_json_path)  # type: ToolModel
@@ -59,7 +60,7 @@ add_tool_to_client(client, robot, tool, urdf_package_path,
 # Change the location of the Planning Problem json file if needed
 planning_problem_path = os.path.join(
     'test', 'design', 'planning_problem_1_newtool.json')
-pp = load_planning_problem(planning_problem_path)
+pp = load_planning_problem(planning_problem_path)  # type: PlanningProblem
 pp.renumber_task_ids()
 
 # Output Location for Planning Result
@@ -71,110 +72,47 @@ result_filename = os.path.join(
 for i, cm in enumerate(pp.static_collision_meshes):
     client.add_collision_mesh(cm)
 
-# Check IK (no plane rotation)
+# ===============
+# Planning Begins
+# ===============
 
-def check_pp_ik(robot, client, tool, pp, plane_rotation_angle=None, diagnose=False):
-    # type: (Robot, PyChoreoClient, Tool, PlanningProblem, Optional[float], bool) -> None
-    total_count = 0
-    reachable_count = 0
-    collisionfree_count = 0
-    with LockRenderer():
-        for robotic_movement in pp.get_robotic_movements():
-            total_count += 1
-            # Some robotic movement may not have target frame because it uses target configuration
-            if robotic_movement.target_frame is not None:
-                # Rotate target frame if plane_rotation is provided
-                if plane_rotation_angle is not None:
-                    tcp_frame = rotate_frame(
-                        robotic_movement.target_frame, plane_rotation_angle)
-                else:
-                    tcp_frame = robotic_movement.target_frame
-                # Convert target frame from tool frame to flange frame
-                target_frame = tool.from_tcf_to_t0cf([tcp_frame])[0]
-                # Compute IK
-                configuration = client.inverse_kinematics(
-                    robot, target_frame, group=None, options={'avoid_collisions': False})
-                # print ("Task [%s] %s" % (robotic_movement.task_id, robotic_movement.tag))
-                # print ("IK Result:" , configuration)
-                # Check Collision
-                if configuration is not None:
-                    reachable_count += 1
-                    cc_result = client.check_collisions(
-                        robot, configuration, options={'diagnosis': diagnose})
-                    if not cc_result:
-                        collisionfree_count += 1
-            else:
-                # Movements with target configuration are assumed to be reachable
-                reachable_count += 1
-                # Check Collision for target configuration
-                cc_result = client.check_collisions(
-                    robot, robotic_movement.target_configuration, options={'diagnosis': diagnose})
-                if not cc_result:
-                    collisionfree_count += 1
-    return total_count, reachable_count, collisionfree_count
+# Start counting time for planning
 
-
+# # Check planning problem IK (no target rotation)
+# # ==============================================
+# start_time = time.time()
 # total_count, reachable_count, collisionfree_count = check_pp_ik(
-#     robot, client, tool, pp, plane_rotation_angle=None, diagnose=False)
+#     client, robot, tool, pp, plane_rotation_angle=None, diagnose=False)
 # print("%i Movements, %i Reachable, %i CollisionFree" %
 #       (total_count, reachable_count, collisionfree_count))
+# end_time = time.time()
+# print("Check IK time: %.2f seconds" % (end_time - start_time))
 
-
-def check_pp_with_global_ik_rotation(robot, client, tool, pp, plane_rotation_steps=36, diagnose=False):
-    possible_angles = []
-    for i in range(plane_rotation_steps):
-        angle = 360 / plane_rotation_steps * i
-        angle_rad = math.radians(angle)
-        total_count, reachable_count, collisionfree_count = check_pp_ik(
-            robot, client, tool, pp, plane_rotation_angle=angle_rad, diagnose=False)
-        print("Rotation(%.1f degrees) : %i Movements, %i Reachable, %i CollisionFree" % (
-            angle, total_count, reachable_count, collisionfree_count))
-        if total_count == collisionfree_count:
-            possible_angles.append(angle)
-    return possible_angles
-
-
+# # Check planning problem IK (with target rotation)
+# # ================================================
+# start_time = time.time()
+# plane_rotation_steps = 20
 # global_rotation_angle = check_pp_with_global_ik_rotation(
-#     robot, client, tool, pp, plane_rotation_steps=20, diagnose=False)
+#     client, robot, tool, pp, plane_rotation_steps=plane_rotation_steps, diagnose=False)
+# end_time = time.time()
+# print("Check IK (%d steps) time: %.2f seconds" %
+#       (plane_rotation_steps, end_time - start_time))
 
-# Find all possible angles for the first linear movement
-# random_ik is used for the first movement because it is not bounded by neighbours
 
-
-def test_all_angles_for_a_frame(client, robot, tool, robotic_movement, starting_config, tries=1, plane_rotation_steps=36):
-    # type: (PyChoreoClient, Robot, Tool, RoboticMovement, Configuration, int, int) -> Tuple[List[float], List[Configuration]]
-    """ Test all angles for a given robotic movement, return a list of possible angles and planned configurations"""
-    possible_angles = []
-    planned_configurations = []
-    for i in range(plane_rotation_steps):
-        angle = 360 / plane_rotation_steps * i
-        angle_rad = math.radians(angle)
-        tcp_frame = rotate_frame(robotic_movement.target_frame, angle_rad)
-        # Convert target frame from tool frame to flange frame
-        target_frame = tool.from_tcf_to_t0cf([tcp_frame])[0]
-        # Compute IK
-        configuration = random_ik(
-            client, robot, target_frame, starting_config=starting_config, tries=tries, collision=True, visualize=False)
-        # configuration = random_ik(client, robot, target_frame, starting_config=starting_config, tries = tries, collision = False, visualize = False)
-        if configuration is not None:
-            possible_angles.append(angle)
-            planned_configurations.append(configuration)
-            starting_config = configuration
-    return possible_angles, planned_configurations
-
+# Planning all movements in the planning problem
+# ==============================================
 
 movements = pp.get_robotic_movements()
 # Skip the last movement
 movements = movements[1:-2]
-# movements = movements[1:10]
 
 first_movement = movements[0]  # type: RoboticMovement
 plane_rotation_steps = 10
-starting_config = pp.start_configuration
+starting_config = pp.start_configuration    # type: Configuration
 possible_angles, planned_configurations = test_all_angles_for_a_frame(
     client, robot, tool, first_movement, starting_config, tries=1, plane_rotation_steps=plane_rotation_steps)
 
-starting_config = planned_configurations[0]
+starting_config = planned_configurations[0] # type: Configuration
 
 # Plan each of the movements, with a depth first search approach
 # The first movement is planned with random IK, the rest are planned with gradient IK
@@ -211,8 +149,10 @@ def dfs(all_movements, currentStep, planned_configurations=None):
     print("Step: %i no options works" % (currentStep))
 
 
-# The first call of the function would look like this:
+# Using the DFS function to plan the movements
 complete_plan = dfs(movements, 1, planned_configurations=[starting_config])
+
+# After planning, set the trajectory result in each movement
 for i in range(len(movements)):
     movement = movements[i]
     movement.trajectory = [complete_plan[i]]

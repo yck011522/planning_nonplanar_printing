@@ -1,25 +1,49 @@
 Codebase for planning non-planar robotic 3D printing trajectories
 
-### Install libraries
-
-Run this the following in terminal from the root folder of this repo. All libraries are installed from source (in the [editable mode](https://pip.pypa.io/en/stable/reference/pip_install/#install-editable)).
-
-
-
+### Install Environment
+Use conda to create an environment
 ```bash
-# install `integral_timber_joints` from source 
-pip install -e .
-
-# Run the following code add the python library paths to Rhino / Grasshopper:
-python -m compas_rhino.install -p compas compas_fab compas_ghpython compas_rhino npp
+conda update conda
+conda create --name npp "python>=3.7,<4"
 ```
 
-Note that the following forked libraries are installed from the submodule directories. They are specific forks of the original repository and should be installed locally.
+
+### Pull Repository
+Ideally use a command line tool to pull the repository and its submodules automatically.
 ```bash
-# The following do not have to be run manually.
-# pip install -e .\external\compas
-# pip install -e .\external\compas_fab
-# pip install -e .\external\compas_fab_pychoreo
+# git clone will create the directory "planning_nonplanar_printing" automatically in the current directory
+git clone --recurse-submodules https://github.com/yck011522/planning_nonplanar_printing.git
+
+```
+Alternatively, if you have cloned this repository without the submodules. You will need to clone
+the submodules separately by performing:
+
+```bash
+git submodule init
+git submodule update
+```
+
+If you clone correctly, you should see a few folders inside the \\external folder, and they are filled with content.
+Confirm the folders have content before continuing to the next step. 
+### Install libraries
+
+Run this the following in terminal from the root folder of this repo. All the submodules are  are installed from source (in the [editable mode](https://pip.pypa.io/en/stable/reference/pip_install/#install-editable)).
+
+```bash
+# install prebuilt pybullet from conda
+conda install -c conda-forge pybullet
+
+# Install submodules from local folders
+pip install -e .\external\compas
+pip install -e .\external\compas_fab
+pip install -e .\external\compas_fab_pychoreo
+
+# install this repository `npp` from source 
+pip install -e .
+
+# Run the following code add the python library paths to Rhino / Grasshopper
+python -m compas_rhino.install -p compas compas_fab compas_ghpython compas_rhino npp
+
 ```
 
 ## General Setup Steps
