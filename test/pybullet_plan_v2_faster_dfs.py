@@ -30,6 +30,7 @@ NORMAL_PLANNING_MODE = 1  # Normal model for planning the problem and saving the
 
 run_mode = NORMAL_PLANNING_MODE
 save_results_after_planning = True  # Only effect in NORMAL_PLANNING_MODE
+replay_results_after_planning = True  # Only effect in NORMAL_PLANNING_MODE
 
 viewer_enabled = True  # Normally False to plan faster, True to visualize
 avoid_collision = True  # Normally True, False only for debugging
@@ -58,7 +59,9 @@ tool_json_path = os.path.join(
 # planning_problem_file_name = "231010_PathPlanning_BioPrint901_AutomatedPathes_TightCake_V1.json"
 # planning_problem_file_name = "231010_PathPlanning_BioPrint901_AutomatedPathes_VariableSpeed_V1.json"
 # planning_problem_file_name = "240207_PathPlanning_BioPrint901_Panel_V1.json"
-planning_problem_file_name = "240207_PathPlanning_BioPrint901_Panel_V2.json"
+# planning_problem_file_name = "240207_PathPlanning_BioPrint901_Panel_V2.json"
+# planning_problem_file_name = "240207_PathPlanning_BioPrint901_Panel_V2.json"
+planning_problem_file_name = "240208_PathPlanning_BioPrint901_Panel_V4.json"
 planning_problem_path = os.path.join(
     "test",
     "design",
@@ -237,17 +240,54 @@ def plan_all_movements_with_initial_config(pp, client, robot, tool, movements, p
     return complete_plan
 
 
+def save_result_to_file(pp, movements, complete_plan, result_save_path):
+    assert len(complete_plan) == len(movements)
+    # Set the trajectory result in each movement
+    for trajectory, movement in zip(complete_plan, movements):
+        movement.trajectory = [trajectory]
+    # Save to disk
+    json_dump(pp, result_save_path)
+
+
+def replay_result(client, robot, configurations):
+    step = 0
+    last_step = len(configurations) - 1
+    play_forward = True
+    while True:
+        client.set_robot_configuration(robot, configurations[step])
+        # Get user Input. b and f can toggle the play direction
+        if play_forward:
+            value = input(
+                "Press <ENTER> to play forward. <b+Enter> to go backwards. <q+Enter> to quit. (Step %i of %i)... " % (step+1, last_step+1))
+        else:
+            value = input(
+                "Press <ENTER> to play backward. <f+Enter> to go forwards. <q+Enter> to quit. (Step %i of %i)... " % (step+1, last_step+1))
+        # Process input
+        if value == "q":
+            break
+        elif value == "b":
+            play_forward = False
+        elif value == "f":
+            play_forward = True
+
+        # Update step
+        if play_forward:
+            step = min(last_step, (step + 1))
+        else:
+            step = max(0, (step - 1))
+
+
 def run_profiler():
     pp, client, robot, tool = initialize()
     movements = pp.get_robotic_movements()
     movements = movements[1:-1]  # Skip the last movement
 
     start_time = time.time()  # Start time
-    cProfile.run(
-        "plan_all_movements_with_initial_config(pp, client, robot, tool, movements)", "restats")
-    print("Total Time: %.2f seconds" % (time.time() - start_time))
-    p = pstats.Stats("restats")
-    p.sort_stats(SortKey.CUMULATIVE).print_stats(30)
+    complete_plan = plan_all_movements_with_initial_config(
+        pp, client, robot, tool, movements)
+    if complete_plan is not None:
+        print("Complete Plan is found for %i movements, total time: %.2f seconds" %
+              (len(complete_plan), time.time() - start_time))
 
 
 def run_normal(save=True, replay=True):
@@ -259,33 +299,30 @@ def run_normal(save=True, replay=True):
         pp, client, robot, tool, movements)
 
     if complete_plan is not None:
-        print("Complete Plan is found, total time: %.2f seconds" %
-              (time.time() - start_time))
+        print("Complete Plan is found for %i movements, total time: %.2f seconds" %
+              (len(complete_plan), time.time() - start_time))
         if save:
             # Save the result to file
-            json_dump(pp, result_save_path)
+            save_result_to_file(pp, movements, complete_plan, result_save_path)
             print("Result is saved to file: ", result_save_path)
-        print("Total Steps: %i" % len(complete_plan))
     else:
         print("Complete Plan is not found")
 
     # Visualize the result if viewer is enabled
     if replay and (complete_plan is not None) and viewer_enabled:
-        step = 0
-        while True:
-            config = complete_plan[step]
-            client.set_robot_configuration(robot, config)
-            value = input(
-                "Press <ENTER> to play forward. <b>+<Enter> to go backwards. <q>+<Enter> to quit. ... ")
-            if value == "q":
-                break
-            elif value == "b":
-                step = max(0, (step - 1))
-            else:
-                step = min(len(complete_plan) - 1, (step + 1))
+        replay_result(client, robot, complete_plan)
+
+
+# -------------------------
+# Entry point of the Script
+# -------------------------
 
 
 if run_mode == PROFILING_MODE:
-    run_profiler()
+    cProfile.run("run_profiler()", "restats")
+    # A file called "restats" will be created in the current folder
+    p = pstats.Stats("restats")
+    p.sort_stats(SortKey.CUMULATIVE).print_stats(30)
 elif run_mode == NORMAL_PLANNING_MODE:
-    run_normal(save=save_results_after_planning)
+    run_normal(save=save_results_after_planning,
+               replay=replay_results_after_planning)
