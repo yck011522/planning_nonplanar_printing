@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<robot name="BioPrintDefT451">
+  <link name="attached_tool_link">
+    <visual>
+      <geometry>
+        <mesh filename="package://BioPrintDefT451/meshes/visual/attached_tool_link_0.obj"/>
+      </geometry>
+      <material name="Material">
+        <color rgba="0.8 0.8 0.8 1.0"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <mesh filename="package://BioPrintDefT451/meshes/visual/attached_tool_link_1.obj"/>
+      </geometry>
+      <material name="Material">
+        <color rgba="0.8 0.8 0.8 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <mesh filename="package://BioPrintDefT451/meshes/collision/attached_tool_link_0.obj"/>
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="package://BioPrintDefT451/meshes/collision/attached_tool_link_1.obj"/>
+      </geometry>
+    </collision>
+  </link>
+</robot>

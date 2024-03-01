@@ -24,15 +24,5 @@
         <mesh filename="package://BioPrint901/meshes/collision/attached_tool_link_2.obj"/>
       </geometry>
     </collision>
-    <collision>
-      <geometry>
-        <mesh filename="package://BioPrint901/meshes/collision/attached_tool_link_3.obj"/>
-      </geometry>
-    </collision>
-    <collision>
-      <geometry>
-        <mesh filename="package://BioPrint901/meshes/collision/attached_tool_link_4.obj"/>
-      </geometry>
-    </collision>
   </link>
 </robot>

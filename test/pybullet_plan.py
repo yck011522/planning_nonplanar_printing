@@ -59,22 +59,61 @@ add_tool_to_client(client, robot, tool, urdf_package_path,
 # Load Planning Problem
 # Change the location of the Planning Problem json file if needed
 planning_problem_path = os.path.join(
-    'test', 'design', 'planning_problem_1_newtool.json')
-pp = load_planning_problem(planning_problem_path)  # type: PlanningProblem
+    'test', 'design', '230808_PathPlanning_BioPrint901_V1.json')
+pp = load_planning_problem(planning_problem_path)
 pp.renumber_task_ids()
 
 # Output Location for Planning Result
 # Change the location of the output json file if needed
 result_filename = os.path.join(
-    root_folder_path, 'test', 'design', 'planning_result_1_newtool.json')
+    root_folder_path, 'test', 'design', 'planning_result_230808_CurveMergeDist_V3.json')
 
 # Set Collision Meshes
 for i, cm in enumerate(pp.static_collision_meshes):
     client.add_collision_mesh(cm)
 
-# ===============
-# Planning Begins
-# ===============
+# Check IK (no plane rotation)
+
+
+def check_pp_ik(robot, client, tool, pp, plane_rotation_angle=None, diagnose=False):
+    # type: (Robot, PyChoreoClient, Tool, PlanningProblem, Optional[float], bool) -> None
+    total_count = 0
+    reachable_count = 0
+    collisionfree_count = 0
+    with LockRenderer():
+        for robotic_movement in pp.get_robotic_movements():
+            total_count += 1
+            # Some robotic movement may not have target frame because it uses target configuration
+            if robotic_movement.target_frame is not None:
+                # Rotate target frame if plane_rotation is provided
+                if plane_rotation_angle is not None:
+                    tcp_frame = rotate_frame(
+                        robotic_movement.target_frame, plane_rotation_angle)
+                else:
+                    tcp_frame = robotic_movement.target_frame
+                # Convert target frame from tool frame to flange frame
+                target_frame = tool.from_tcf_to_t0cf([tcp_frame])[0]
+                # Compute IK
+                configuration = client.inverse_kinematics(
+                    robot, target_frame, group=None, options={'avoid_collisions': False})
+                # print ("Task [%s] %s" % (robotic_movement.task_id, robotic_movement.tag))
+                # print ("IK Result:" , configuration)
+                # Check Collision
+                if configuration is not None:
+                    reachable_count += 1
+                    cc_result = client.check_collisions(
+                        robot, configuration, options={'diagnosis': diagnose})
+                    if not cc_result:
+                        collisionfree_count += 1
+            else:
+                # Movements with target configuration are assumed to be reachable
+                reachable_count += 1
+                # Check Collision for target configuration
+                cc_result = client.check_collisions(
+                    robot, robotic_movement.target_configuration, options={'diagnosis': diagnose})
+                if not cc_result:
+                    collisionfree_count += 1
+    return total_count, reachable_count, collisionfree_count
 
 # Start counting time for planning
 
@@ -104,7 +143,9 @@ for i, cm in enumerate(pp.static_collision_meshes):
 
 movements = pp.get_robotic_movements()
 # Skip the last movement
-movements = movements[1:-2]
+# movements = movements[1:-2]
+movements = movements[0:-1]
+# movements = movements[1:10]
 
 first_movement = movements[0]  # type: RoboticMovement
 plane_rotation_steps = 10
@@ -112,12 +153,12 @@ starting_config = pp.start_configuration    # type: Configuration
 possible_angles, planned_configurations = test_all_angles_for_a_frame(
     client, robot, tool, first_movement, starting_config, tries=1, plane_rotation_steps=plane_rotation_steps)
 
-starting_config = planned_configurations[0] # type: Configuration
+# starting_config = planned_configurations[0]
 
 # Plan each of the movements, with a depth first search approach
 # The first movement is planned with random IK, the rest are planned with gradient IK
 plane_rotation_steps = 50
-jump_tolerance = 0.5
+jump_tolerance = 0.7
 
 
 def dfs(all_movements, currentStep, planned_configurations=None):
