@@ -58,7 +58,7 @@ tool_json_path = os.path.join(
 # planning_problem_file_name = "231010_PathPlanning_BioPrint901_AutomatedPathes_TightCake_V1.json"
 # planning_problem_file_name = "231010_PathPlanning_BioPrint901_AutomatedPathes_VariableSpeed_V1.json"
 # planning_problem_file_name = "240207_PathPlanning_BioPrint901_Panel_V1.json"
-planning_problem_file_name = "240207_PathPlanning_BioPrint901_Panel_V2.json"
+planning_problem_file_name = "240226_PathPlanning_BioPrint901__LatticeStudy_V2_Small.json"
 planning_problem_path = os.path.join(
     "test",
     "design",
