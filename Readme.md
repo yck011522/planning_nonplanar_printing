@@ -33,13 +33,16 @@ Run this the following in terminal from the root folder of this repo. All the su
 # install prebuilt pybullet from conda
 conda install -c conda-forge pybullet
 
-# Install submodules from local folders
+# Install submodules from local folders (Do not use the latest versions!) 
 pip install -e .\external\compas
 pip install -e .\external\compas_fab
 pip install -e .\external\compas_fab_pychoreo
 
-# install this repository `npp` from source 
+# Install this repository `npp` from source (If there are errors see next command!)
 pip install -e .
+
+# If the previous command resulted in error related to building ikfast_pybind or ikfast, try the following: 
+pip install -e . --no-deps
 
 # Run the following code add the python library paths to Rhino / Grasshopper
 python -m compas_rhino.install -p compas compas_fab compas_ghpython compas_rhino npp
