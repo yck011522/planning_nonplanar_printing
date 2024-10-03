@@ -13,7 +13,8 @@ setup(
     install_requires=[
         'compas',
         'compas_fab',
-        'compas_fab_pychoreo'
+        'compas_fab_pychoreo',
+        'scipy==1.11.1'
     ],
     # Local packages
     dependency_links=[
