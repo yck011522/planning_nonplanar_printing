@@ -16,6 +16,7 @@ except:
     pass
 
 def random_ik(client, robot, frame, starting_config=None, tries=10, collision=True, visualize=True, return_all=False):
+    # type: (PyChoreoClient, Robot, Frame, Optional[Configuration], int, bool, bool, bool) -> Optional[Configuration]
     """ pybullet IK wrapper, provide random IK solution for a given frame.
     If starting_config is provided, the random IK will start from that configuration.
     If tries is more than 1, the random IK will try multiple times with randomized starting configuration."""

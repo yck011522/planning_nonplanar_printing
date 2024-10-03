@@ -59,14 +59,14 @@ add_tool_to_client(client, robot, tool, urdf_package_path,
 # Load Planning Problem
 # Change the location of the Planning Problem json file if needed
 planning_problem_path = os.path.join(
-    'test', 'design', '230808_PathPlanning_BioPrint901_V1.json')
+    'test', 'design', 'PathPlanning', '240226_PathPlanning_BioPrint901__LatticeStudy_V1_Small.json')
 pp = load_planning_problem(planning_problem_path)
 pp.renumber_task_ids()
 
 # Output Location for Planning Result
 # Change the location of the output json file if needed
 result_filename = os.path.join(
-    root_folder_path, 'test', 'design', 'planning_result_230808_CurveMergeDist_V3.json')
+    root_folder_path, 'test', 'design', 'PlanningResult', '240226_PathPlanning_BioPrint901__LatticeStudy_V1_Small.json')
 
 # Set Collision Meshes
 for i, cm in enumerate(pp.static_collision_meshes):
